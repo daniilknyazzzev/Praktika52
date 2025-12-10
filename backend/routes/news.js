@@ -3,6 +3,18 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 
+// Middleware для проверки JWT
+function authMiddleware(req, res, next) {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Нет токена' });
+    try {
+        req.user = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
+        next();
+    } catch (err) {
+        return res.status(401).json({ message: 'Неверный токен', error: err });
+    }
+}
+
 // Получение всех новостей
 router.get('/', (req, res) => {
     const query = 'SELECT * FROM news ORDER BY created_at DESC';
@@ -12,15 +24,21 @@ router.get('/', (req, res) => {
     });
 });
 
-// Создание новой новости
-router.post('/', (req, res) => {
-    const { title, content, creator_id } = req.body;
+// Создание новости
+router.post('/', authMiddleware, (req, res) => {
+    const { title, content } = req.body;
+    const creator_id = req.user.id;
+
+    if (!title || !content) return res.status(400).json({ message: 'Не все поля заполнены' });
+
     const query = 'INSERT INTO news (title, content, creator_id) VALUES (?, ?, ?)';
     db.query(query, [title, content, creator_id], (err, result) => {
         if (err) return res.status(500).json({ message: 'Ошибка создания новости', error: err });
-        res.json({ newsId: result.insertId, message: 'Новость создана' });
+        res.json({ message: 'Новость создана', newsId: result.insertId });
     });
 });
+
+module.exports = router;
 
 // Удаление новости (только админ)
 router.delete('/:id', (req, res) => {

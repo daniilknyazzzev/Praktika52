@@ -21,6 +21,7 @@ router.post('/login', (req, res) => {
 
         const user = results[0];
 
+        // Проверка пароля (открытый текст)
         if (user.password !== password) {
             return res.status(400).json({ message: 'Неверный пароль' });
         }
@@ -33,6 +34,32 @@ router.post('/login', (req, res) => {
         );
 
         res.json({ token, role: user.role });
+    });
+});
+
+// POST /api/auth/register
+router.post('/register', (req, res) => {
+    const { email, password, role } = req.body;
+
+    if (!email || !password || !role) {
+        return res.status(400).json({ message: 'Заполните все поля' });
+    }
+
+    // Проверяем, нет ли такого email
+    const checkQuery = 'SELECT * FROM users WHERE email = ?';
+    db.query(checkQuery, [email], (err, results) => {
+        if (err) return res.status(500).json({ message: 'Ошибка сервера', error: err });
+
+        if (results.length > 0) {
+            return res.status(400).json({ message: 'Пользователь с таким email уже существует' });
+        }
+
+        const insertQuery = 'INSERT INTO users (email, password, role) VALUES (?, ?, ?)';
+        db.query(insertQuery, [email, password, role], (err, result) => {
+            if (err) return res.status(500).json({ message: 'Ошибка регистрации', error: err });
+
+            res.json({ message: 'Пользователь зарегистрирован', userId: result.insertId });
+        });
     });
 });
 

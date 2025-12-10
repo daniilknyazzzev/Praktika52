@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Задачи — Company Portal</title>
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<header class="card header">
+    <h1>Задачи</h1>
+    <div>
+        <button onclick="location.href='index.html'" class="btn">Главная</button>
+        <button id="logoutBtn" class="btn">Выйти</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="card">
+        <h2>Создать задачу</h2>
+        <form id="createTaskForm">
+            <div class="form-group">
+                <label>Название</label>
+                <input id="t_title" required>
+            </div>
+            <div class="form-group">
+                <label>Описание</label>
+                <textarea id="t_description"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Исполнитель (ID)</label>
+                <input id="t_assignee" type="number" required>
+            </div>
+            <div class="form-group">
+                <label>Дедлайн</label>
+                <input id="t_deadline" type="date" required>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-primary" type="submit">Создать</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="tasksList" class="card">
+        <h2>Список задач</h2>
+        <div id="tasksContainer"></div>
+    </div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/tasks.js"></script>
+</body>
+</html>
