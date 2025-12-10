@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 
-// --- AUTH MIDDLEWARE ----------------------------------------------------
+// --- AUTH MIDDLEWARE -----------
 function authMiddleware(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Нет токена' });
@@ -16,7 +16,7 @@ function authMiddleware(req, res, next) {
     }
 }
 
-// --- ADMIN ONLY MIDDLEWARE ---------------------------------------------
+// --- ADMIN ONLY MIDDLEWARE -----------------
 function adminOnly(req, res, next) {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'Доступ запрещён! Только администратор.' });
@@ -25,7 +25,7 @@ function adminOnly(req, res, next) {
 }
 
 
-// --- GET NEWS -----------------------------------------------------------
+// --- get news -----------------------
 router.get('/', (req, res) => {
     const query = 'SELECT * FROM news ORDER BY created_at DESC';
     db.query(query, (err, results) => {
@@ -35,7 +35,7 @@ router.get('/', (req, res) => {
 });
 
 
-// --- CREATE NEWS (user + admin) ----------------------------------------
+// --- create news user and admin--------
 router.post('/', authMiddleware, (req, res) => {
     const { title, content } = req.body;
     const creator_id = req.user.id;
@@ -52,7 +52,7 @@ router.post('/', authMiddleware, (req, res) => {
 });
 
 
-// --- DELETE NEWS (ADMIN ONLY) ------------------------------------------
+// --- delete news ADMIN  -------
 router.delete('/:id', authMiddleware, adminOnly, (req, res) => {
     const { id } = req.params;
 
