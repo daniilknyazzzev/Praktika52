@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Новости</title>
+<style>
+  body {
+    background-color: #ffffff;
+    color: #000000;
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  #createPostBtn {
+    background-color: transparent;
+    border: 2px solid pink;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+  #createPostBtn:hover {
+    background-color: pink;
+    color: #fff;
+  }
+  #postForm {
+    display: none;
+    margin-top: 20px;
+    border: 2px solid pink;
+    padding: 10px;
+    animation: fadeIn 0.5s;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+  #posts {
+    margin-top: 30px;
+  }
+  .post {
+    background: #fff;
+    border: 2px solid pink;
+    padding: 10px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .post img {
+    max-width: 200px;
+    display: block;
+    margin-top: 10px;
+  }
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .post-author {
+    font-weight: bold;
+  }
+  .post-date {
+    font-size: 0.9em;
+    color: #555;
+  }
+  .deleteBtn {
+    background-color: transparent;
+    border: none;
+    color: red;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .deleteBtn:hover {
+    transform: scale(1.2);
+  }
+  #publishBtn, #cancelBtn {
+    background-color: pink;
+    border: none;
+    padding: 8px 16px;
+    margin: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  #publishBtn:hover, #cancelBtn:hover {
+    background-color: hotpink;
+    transform: scale(1.05);
+  }
+</style>
+</head>
+<body>
+
+<button id="createPostBtn">Создать новость</button>
+
+<div id="postForm">
+  <label>Текст новости:</label><br>
+  <textarea id="postText" rows="4" cols="50"></textarea><br><br>
+  <label>Добавить фото:</label>
+  <input type="file" id="postImage" accept="image/*"/><br><br>
+  <button id="publishBtn">Публиковать</button>
+  <button id="cancelBtn">Отмена</button>
+</div>
+
+<div id="posts"></div>
+
+<script>
+  const createPostBtn = document.getElementById('createPostBtn');
+  const postForm = document.getElementById('postForm');
+  const publishBtn = document.getElementById('publishBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const postsContainer = document.getElementById('posts');
+
+  let author = "Автор: Иван Иванов"; // Можно задавать динамически
+
+  createPostBtn.addEventListener('click', () => {
+    postForm.style.display = 'block';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    postForm.style.display = 'none';
+    clearForm();
+  });
+
+  function clearForm() {
+    document.getElementById('postText').value = '';
+    document.getElementById('postImage').value = '';
+  }
+
+  publishBtn.addEventListener('click', () => {
+    const text = document.getElementById('postText').value.trim();
+    const imageFile = document.getElementById('postImage').files[0];
+
+    if (text === '' && !imageFile) {
+      alert('Введите текст или добавьте фото');
+      return;
+    }
+
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post';
+
+    // Создаем заголовок с автором и датой
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'post-header';
+
+    const authorSpan = document.createElement('span');
+    authorSpan.className = 'post-author';
+    authorSpan.innerText = author;
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'post-date';
+    const now = new Date();
+    dateSpan.innerText = now.toLocaleString();
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'deleteBtn';
+    deleteBtn.innerText = 'Удалить';
+
+    deleteBtn.addEventListener('click', () => {
+      postsContainer.removeChild(postDiv);
+    });
+
+    headerDiv.appendChild(authorSpan);
+    headerDiv.appendChild(dateSpan);
+    headerDiv.appendChild(deleteBtn);
+
+    postDiv.appendChild(headerDiv);
+
+    // Текст новости
+    if (text !== '') {
+      const textPara = document.createElement('p');
+      textPara.innerText = text;
+      postDiv.appendChild(textPara);
+    }
+
+    // Фото
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        postDiv.appendChild(img);
+      }
+      reader.readAsDataURL(imageFile);
+    }
+
+    postsContainer.insertBefore(postDiv, postsContainer.firstChild);
+    postForm.style.display = 'none';
+    clearForm();
+  });
+</script>
+
+</body>
+</html>
