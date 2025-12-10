@@ -1,19 +1,26 @@
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role"); // Роль текущего пользователя
+    const role = localStorage.getItem("role"); // Роль пользователя
+
     const createNewsForm = document.getElementById("createNewsForm");
     const newsMessage = document.getElementById("newsMessage");
     const newsContainer = document.getElementById("newsContainer");
     const logoutBtn = document.getElementById("logoutBtn");
+
+    // Если токена нет — редирект на login
+    if (!token) {
+        window.location.href = "login.html";
+        return;
+    }
 
     // Загрузка списка новостей
     async function loadNews() {
         newsContainer.innerHTML = "";
         try {
             const res = await fetch("http://localhost:3000/api/news");
-            const news = await res.json();
+            const newsList = await res.json();
 
-            news.forEach(n => {
+            newsList.forEach(n => {
                 const div = document.createElement("div");
                 div.className = "news-card";
 
@@ -23,16 +30,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     <small>Создано: ${new Date(n.created_at).toLocaleString()}</small>
                 `;
 
-                // Если роль admin, добавляем кнопку удаления
+                // Если роль admin — показываем кнопку удаления
                 if (role === "admin") {
                     const deleteBtn = document.createElement("button");
                     deleteBtn.textContent = "Удалить";
-                    deleteBtn.style.marginTop = "10px";
                     deleteBtn.style.background = "#ff3b30";
                     deleteBtn.style.color = "#fff";
                     deleteBtn.style.border = "none";
-                    deleteBtn.style.padding = "8px 12px";
-                    deleteBtn.style.borderRadius = "8px";
+                    deleteBtn.style.padding = "5px 10px";
+                    deleteBtn.style.borderRadius = "6px";
+                    deleteBtn.style.marginTop = "10px";
                     deleteBtn.style.cursor = "pointer";
 
                     deleteBtn.addEventListener("click", async () => {
@@ -68,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Создание новости
     createNewsForm.addEventListener("submit", async e => {
         e.preventDefault();
+
         const title = document.getElementById("news_title").value.trim();
         const content = document.getElementById("news_content").value.trim();
         newsMessage.textContent = "";
@@ -113,5 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
         window.location.href = "login.html";
     });
 
+    // Инициализация списка новостей
     loadNews();
 });

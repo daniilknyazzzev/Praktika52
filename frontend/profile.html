@@ -10,36 +10,48 @@
 <header class="card header">
 <h1>Профиль</h1>
 <div>
-<button onclick="location.href='index.html'" class="btn">Главная</button>
-<button id="logoutBtn3" class="btn">Выйти</button>
+    <button onclick="location.href='index.html'" class="btn">Главная</button>
+    <button id="logoutBtn3" class="btn">Выйти</button>
 </div>
 </header>
-
 
 <main class="container">
 <div class="card">
 <h2>Информация</h2>
-<p id="pRole" class="item-meta"></p>
-<p id="pEmail" class="item-desc"></p>
+<p id="pName" class="item-meta"></p> <!-- Имя пользователя -->
+<p id="pRole" class="item-meta"></p> <!-- Роль -->
+
+<!-- Если роль admin, показываем кнопку для админ-панели -->
+<div id="adminPanelBtnContainer" style="margin-top:15px;"></div>
 </div>
 </main>
-
 
 <script src="js/api.js"></script>
 <script>
 document.getElementById('logoutBtn3').addEventListener('click', () => {
-localStorage.removeItem('token');
-localStorage.removeItem('role');
-window.location.href = 'login.html';
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('name'); // очищаем имя при выходе
+    window.location.href = 'login.html';
 });
 
-
 (async function(){
-const token = localStorage.getItem('token');
-if (!token) return window.location.href = 'login.html';
-const role = localStorage.getItem('role') || 'user';
-document.getElementById('pRole').textContent = 'Роль: ' + role;
-// email не сохраняется — можно добавить при логине
+    const token = localStorage.getItem('token');
+    if (!token) return window.location.href = 'login.html';
+
+    const role = localStorage.getItem('role') || 'user';
+    const name = localStorage.getItem('name') || 'Пользователь';
+    document.getElementById('pRole').textContent = 'Роль: ' + role;
+    document.getElementById('pName').textContent = 'Имя: ' + name;
+
+    if(role === 'admin'){
+        const container = document.getElementById('adminPanelBtnContainer');
+        const btn = document.createElement('button');
+        btn.textContent = 'Админ-панель';
+        btn.className = 'btn';
+        btn.onclick = () => window.location.href = 'admin.html';
+        container.appendChild(btn);
+    }
 })();
 </script>
 </body>

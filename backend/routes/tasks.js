@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 
-// Middleware для проверки JWT
+// --- AUTH MIDDLEWARE ----------------------------------------------------
 function authMiddleware(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ message: 'Нет токена' });
@@ -16,7 +16,16 @@ function authMiddleware(req, res, next) {
     }
 }
 
-// Получить все задачи
+// --- ADMIN ONLY ---------------------------------------------------------
+function adminOnly(req, res, next) {
+    if (req.user.role !== "admin") {
+        return res.status(403).json({ message: "Доступ запрещён! Только администратор." });
+    }
+    next();
+}
+
+
+// --- GET ALL TASKS (user + admin) --------------------------------------
 router.get('/', authMiddleware, (req, res) => {
     const query = 'SELECT * FROM tasks ORDER BY created_at DESC';
     db.query(query, (err, results) => {
@@ -25,14 +34,21 @@ router.get('/', authMiddleware, (req, res) => {
     });
 });
 
-// Создать новую задачу
+
+// --- CREATE TASK (user + admin) ----------------------------------------
 router.post('/', authMiddleware, (req, res) => {
-    const { title, description, creator_id, assignee_id, deadline } = req.body;
-    if (!title || !creator_id || !assignee_id || !deadline) {
+    const { title, description, assignee_id, deadline } = req.body;
+
+    if (!title || !assignee_id || !deadline) {
         return res.status(400).json({ message: 'Не все поля заполнены' });
     }
 
-    const query = 'INSERT INTO tasks (title, description, creator_id, assignee_id, deadline, status, created_at) VALUES (?, ?, ?, ?, ?, "не выполнена", NOW())';
+    const creator_id = req.user.id;
+
+    const query = `INSERT INTO tasks 
+        (title, description, creator_id, assignee_id, deadline, status, created_at) 
+        VALUES (?, ?, ?, ?, ?, "не выполнена", NOW())`;
+
     db.query(query, [title, description, creator_id, assignee_id, deadline], (err, result) => {
         if (err) return res.status(500).json({ message: 'Ошибка создания задачи', error: err });
         res.json({ message: 'Задача создана', taskId: result.insertId });
@@ -40,30 +56,67 @@ router.post('/', authMiddleware, (req, res) => {
 });
 
 
-// Изменить статус задачи
+// --- UPDATE STATUS (user can update own, admin can update all) ----------
 router.put('/:id/status', authMiddleware, (req, res) => {
     const { id } = req.params;
-    const { status } = req.body; // "не выполнена" или "выполнена"
-    const query = 'UPDATE tasks SET status = ? WHERE id = ?';
-    db.query(query, [status, id], (err, result) => {
-        if (err) return res.status(500).json({ message: 'Ошибка обновления статуса', error: err });
-        res.json({ message: 'Статус обновлён' });
+    const { status } = req.body;
+
+    if (status !== "выполнена" && status !== "не выполнена") {
+        return res.status(400).json({ message: "Некорректный статус" });
+    }
+
+    // сотрудник может менять только задачи где он assignee
+    const queryOwnerCheck = "SELECT * FROM tasks WHERE id = ?";
+    db.query(queryOwnerCheck, [id], (err, results) => {
+        if (err) return res.status(500).json({ message: "Ошибка проверки задачи", error: err });
+
+        if (results.length === 0) return res.status(404).json({ message: "Задача не найдена" });
+
+        const task = results[0];
+
+        if (req.user.role !== "admin" && task.assignee_id !== req.user.id) {
+            return res.status(403).json({ message: "Вы не можете менять статус чужой задачи" });
+        }
+
+        const updateQuery = 'UPDATE tasks SET status = ? WHERE id = ?';
+        db.query(updateQuery, [status, id], (err) => {
+            if (err) return res.status(500).json({ message: 'Ошибка обновления статуса', error: err });
+            res.json({ message: 'Статус обновлён' });
+        });
     });
 });
 
-// Редактировать задачу
+
+// --- EDIT TASK (admin + creator) ---------------------------------------
 router.put('/:id', authMiddleware, (req, res) => {
     const { id } = req.params;
     const { title, description, assignee_id, deadline } = req.body;
-    const query = 'UPDATE tasks SET title = ?, description = ?, assignee_id = ?, deadline = ? WHERE id = ?';
-    db.query(query, [title, description, assignee_id, deadline, id], (err, result) => {
-        if (err) return res.status(500).json({ message: 'Ошибка обновления задачи', error: err });
-        res.json({ message: 'Задача обновлена' });
+
+    const queryCheck = "SELECT * FROM tasks WHERE id = ?";
+    db.query(queryCheck, [id], (err, results) => {
+        if (err) return res.status(500).json({ message: "Ошибка проверки", error: err });
+        if (results.length === 0) return res.status(404).json({ message: "Задача не найдена" });
+
+        const task = results[0];
+
+        if (req.user.role !== "admin" && task.creator_id !== req.user.id) {
+            return res.status(403).json({ message: "Вы не можете редактировать чужую задачу" });
+        }
+
+        const updateQuery = `UPDATE tasks SET 
+            title = ?, description = ?, assignee_id = ?, deadline = ? 
+            WHERE id = ?`;
+
+        db.query(updateQuery, [title, description, assignee_id, deadline, id], (err) => {
+            if (err) return res.status(500).json({ message: 'Ошибка обновления задачи', error: err });
+            res.json({ message: 'Задача обновлена' });
+        });
     });
 });
 
-// Получить задачу по id
-router.get('/:id', (req, res) => {
+
+// --- GET TASK BY ID -----------------------------------------------------
+router.get('/:id', authMiddleware, (req, res) => {
     const { id } = req.params;
     const query = 'SELECT * FROM tasks WHERE id = ?';
     db.query(query, [id], (err, results) => {
@@ -73,12 +126,19 @@ router.get('/:id', (req, res) => {
     });
 });
 
-//удаленние задачи
-router.delete('/:id', authMiddleware, (req, res) => {
+
+// --- DELETE TASK (ADMIN ONLY) ------------------------------------------
+router.delete('/:id', authMiddleware, adminOnly, (req, res) => {
     const { id } = req.params;
     const query = 'DELETE FROM tasks WHERE id = ?';
+
     db.query(query, [id], (err, result) => {
-        if (err) return res.status(500).json({ message: 'Ошибка удаления задачи', error: err });
+        if (err) return res.status(500).json({ message: 'Ошибка удаления', error: err });
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Задача не найдена' });
+        }
+
         res.json({ message: 'Задача удалена' });
     });
 });

@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 
-// POST /api/auth/login
+// --- LOGIN --------------------------------------------------------
 router.post('/login', (req, res) => {
     const { email, password } = req.body;
 
@@ -26,26 +26,32 @@ router.post('/login', (req, res) => {
             return res.status(400).json({ message: 'Неверный пароль' });
         }
 
-        // Генерация JWT токена
+        // Генерация JWT токена с email
         const token = jwt.sign(
-            { id: user.id, role: user.role },
+            { id: user.id, role: user.role, name: user.email },
             process.env.JWT_SECRET || 'secretkey',
-            { expiresIn: '1h' }
+            { expiresIn: '4h' }
         );
 
-        res.json({ token, role: user.role });
+        res.json({ 
+            token, 
+            role: user.role,
+            name: user.email // отправляем фронту email
+        });
     });
 });
 
-// POST /api/auth/register
+// --- REGISTER --------------------------------------------------------
 router.post('/register', (req, res) => {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
 
-    if (!email || !password || !role) {
+    // Пользовательская роль всегда "user"
+    const role = "user";
+
+    if (!email || !password) {
         return res.status(400).json({ message: 'Заполните все поля' });
     }
 
-    // Проверяем, нет ли такого email
     const checkQuery = 'SELECT * FROM users WHERE email = ?';
     db.query(checkQuery, [email], (err, results) => {
         if (err) return res.status(500).json({ message: 'Ошибка сервера', error: err });
@@ -58,7 +64,11 @@ router.post('/register', (req, res) => {
         db.query(insertQuery, [email, password, role], (err, result) => {
             if (err) return res.status(500).json({ message: 'Ошибка регистрации', error: err });
 
-            res.json({ message: 'Пользователь зарегистрирован', userId: result.insertId });
+            res.json({ 
+                message: 'Пользователь зарегистрирован', 
+                userId: result.insertId,
+                role: "user"
+            });
         });
     });
 });
